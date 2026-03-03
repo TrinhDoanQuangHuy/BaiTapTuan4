@@ -1,84 +1,70 @@
 package bai4_qlsp_LeBinh.demo.controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model; // Fixed import
-import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.multipart.MultipartFile;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.*;
 
-import bai4_qlsp_LeBinh.demo.model.Category;
 import bai4_qlsp_LeBinh.demo.model.Product;
 import bai4_qlsp_LeBinh.demo.service.CategoryService;
 import bai4_qlsp_LeBinh.demo.service.ProductService;
-import jakarta.validation.Valid;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import java.util.List;
 
 @Controller
 @RequestMapping("/products")
 public class ProductController {
     @Autowired
     private ProductService productService;
+
     @Autowired
     private CategoryService categoryService;
 
-    @GetMapping()
-    public String Index(Model model) {
-        model.addAttribute("listproduct", productService.getAll());
-        return "product/products";
+    @GetMapping
+    public String listProducts(Model model) {
+        List<Product> productList = productService.getAllProducts();
+        model.addAttribute("products", productList);
+        return "product/list";
     }
 
-    @GetMapping("/create")
-    public String Create(Model model) {
+    @GetMapping("/add")
+    public String showAddForm(Model model) {
         model.addAttribute("product", new Product());
-        model.addAttribute("categories", categoryService.getAll());
-        return "product/create";
+        model.addAttribute("categories", categoryService.getAllCategories());
+        return "product/add";
     }
 
-    @PostMapping("/create")
-    public String Create(@Valid Product newProduct, BindingResult result, 
-                         @RequestParam("category.id") int categoryId, 
-                         @RequestParam("imageProduct") MultipartFile imageProduct, Model model) {
-        if (result.hasErrors()) {
-            model.addAttribute("product", newProduct);
-            model.addAttribute("categories", categoryService.getAll());
-            return "product/create";
-        }
-        if (imageProduct != null && !imageProduct.isEmpty()) {
-            productService.updateImage(newProduct, imageProduct);
-        }
-        Category selectedCategory = categoryService.get(categoryId);
-        newProduct.setCategory(selectedCategory);
-        productService.add(newProduct);
+    @PostMapping("/save")
+    public String saveProduct(@ModelAttribute("product") Product product) {
+        productService.saveProduct(product);
         return "redirect:/products";
     }
 
     @GetMapping("/edit/{id}")
-    public String Edit(@PathVariable int id, Model model) {
-        Product find = productService.get(id);
-        if (find == null) {
-            return "error/404"; // Custom error page
+    public String showEditForm(@PathVariable("id") Integer id, Model model) {
+
+        Product product = productService.getProductById(id);
+
+        if (product == null) {
+            return "redirect:/products";
         }
-        model.addAttribute("product", find);
-        model.addAttribute("categories", categoryService.getAll());
+
+        model.addAttribute("product", product);
+        model.addAttribute("categories", categoryService.getAllCategories());
+
         return "product/edit";
     }
+    @PostMapping("/update")
+public String updateProduct(@ModelAttribute("product") Product product) {
 
-    @PostMapping("/edit")
-    public String Edit(@Valid Product editProduct, BindingResult result, 
-                       @RequestParam("imageProduct") MultipartFile imageProduct, Model model) {
-        if (result.hasErrors()) {
-            model.addAttribute("product", editProduct);
-            model.addAttribute("categories", categoryService.getAll());
-            return "product/edit";
-        }
-        if (imageProduct != null && !imageProduct.isEmpty()) {
-            productService.updateImage(editProduct, imageProduct);
-        }
-        productService.update(editProduct);
+    productService.saveProduct(product);
+    return "redirect:/products";
+}
+
+    // 📌 Xóa
+    @GetMapping("/delete/{id}")
+    public String deleteProduct(@PathVariable("id") Integer id) {
+        productService.deleteProduct(id);
         return "redirect:/products";
     }
 }
